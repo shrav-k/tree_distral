@@ -26,21 +26,27 @@ class DQN(Model):
             x = LeakyReLU(x)
         return self.layers[len(self.layers) - 1](x)
 
-def select_action(state, policy, model, num_actions, EPS_START, EPS_END, EPS_DECAY, steps_done, alpha, beta):
-    """
-    Selects whether the next action is choosen by our model or randomly
-    """
-    sample = random.random()
-    eps_threshold = EPS_END + (EPS_START - EPS_END) * math.exp(-1. * steps_done / EPS_DECAY).data.max(1)[1].view(1, 1)
-    if sample <= eps_threshold:
-        z = np.zeros(num_actions)
-        z[random.randint(0,num_actions - 1)] = 1
-        return z
 
-    Q = model(state)
-    pi0 = policy(state)
-    V = tf.log((tf.pow(pi0, alpha) * tf.exp(beta * Q)).sum(1)) / beta
-    pi_i = tf.pow(pi0, alpha) * tf.exp(beta * (Q - V))
-    pi_i = tf.max(tf.zeros_like(pi_i) + 1e-15, pi_i)
-    action = tf.random.categorical(pi_i,1)
+
+def select_action(state,model_policy , distilled_policy):
+
+    #TODO: may need to do formatting for the state
+    # Run the policy
+    probs = model_policy(state)
+
+    # Obtain the most probable action for the policy
+    m = tf.random.categorical(probs)
+    action =  m.sample()
+    model_policy.saved_actions.append(m.log_prob(action))
+
+
+    # Run distilled policy
+    probs0 = distilled_policy(state)
+
+    # Obtain the most probably action for the distilled policy
+    m = tf.random.categorical(probs0)
+    action_tmp =  m.sample()
+    distilled_policy.saved_actions.append(m.log_prob(action_tmp))
+
+    # Return the most probable action for the policy
     return action
