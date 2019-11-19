@@ -50,3 +50,22 @@ def select_action(state,model_policy , distilled_policy):
 
     # Return the most probable action for the policy
     return action
+
+def finish_episode(policy, distilled, opt_policy, opt_distilled, alpha, beta, gamma):
+    reward_losses = []
+    distilled_losses = []
+    entropy_losses = []
+
+    alpha_const = tf.constant(alpha)
+    beta_const = tf.constant(beta)
+
+    discounts = [gamma ** i for i in reversed(range(len(policy.rewards[::-1])))]
+
+    for log_prob_i, log_prob_0, d, r in zip(policy.saved_actions, distilled.saved_actions,
+        discounts, rewards):
+        reward_losses.append(-d * tf.constant(r))
+        distill_losses.append(-((d*alpha_const)/beta_const) * log_prob_0)
+        entropy_losses.append((d/beta)*log_prob_i)
+
+    loss = tf.stack(reward_losses).sum() + tf.stack(entropy_losses.sum()) + torch.stack(distill_losses).sum()
+    return loss
