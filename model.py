@@ -71,7 +71,7 @@ def finish_episode(policy, distilled, opt_policy, opt_distilled, alpha, beta, ga
         entropy_losses.append((d/beta)*log_prob_i)
     
     with tf.GradientTape() as tape:
-        loss = tf.stack(reward_losses).sum() + tf.stack(entropy_losses.sum()) + torch.stack(distill_losses).sum()
+        loss = tf.stack(reward_losses).sum() + tf.stack(entropy_losses.sum()) + tf.stack(distill_losses).sum()
 
     policy_gradients = tape.gradient(loss, policy.trainable_variables)
     opt_policy.apply_gradients(zip(policy_gradients, policy.trainable_variables))
