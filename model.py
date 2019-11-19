@@ -3,6 +3,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import Dense, Flatten, Conv2D
 from tensorflow.keras import Model
 from tensorflow.compat.v1.keras.layers import LeakyReLU
+from tensorflow.keras.optimizers import Adam
 import math
 import random
 import numpy as np
@@ -11,6 +12,8 @@ class DQN(Model):
     """
     Deep neural network that represents an agent.
     """
+    saved_actions = []
+    rewards = []
     def __init__(self,input_size,num_actions,layer_size,depth):
         super(DQN, self).__init__()
         self.layers = []
@@ -50,3 +53,69 @@ def select_action(state,model_policy , distilled_policy):
 
     # Return the most probable action for the policy
     return action
+
+def trainDistral(file_name="Distral_1col", list_of_envs=[GridworldEnv(5), GridworldEnv(4)], batch_size=128,
+                     gamma=0.80, alpha=0.5,
+                     beta=0.005, num_episodes=1000,
+                     max_num_steps_per_episode=10, learning_rate=0.001,
+                     memory_replay_size=10000, memory_policy_size=1000,log_interval = 100):
+
+
+    # Specify Environment conditions
+    input_size = list_of_envs[0].observation_space.shape[0]
+    num_actions = list_of_envs[0].action_space.n
+    tasks = len(list_of_envs)
+
+    # Define our set of policies, including distilled one
+    models = [DQN(input_size, num_actions,64,2) for _ in range(tasks + 1)]
+    optimizers = [Adam(learning_rate) for model in models]
+
+    # Store the total rewards
+    episode_rewards = [[] for i in range(num_episodes)]
+    episode_duration = [[] for i in range(num_episodes)]
+
+    for i_episode in range(num_episodes):
+
+        # For each one of the envs
+        for i_env, env in enumerate(list_of_envs):
+
+            # Initialize state of envs
+            state = env.reset()
+
+            # Store total reward per environment per episode
+            total_reward = 0
+
+            # Store duration of each episode per env
+            duration = 0
+
+            for t in range(max_num_steps_per_episode):
+
+                # Run our policy
+                action = select_action(state, models[i_env + 1], models[0])
+
+                next_state, reward, done, _ = env.step(action)
+                models[i_env + 1].rewards.append(reward)
+                total_reward += reward
+                duration += 1
+
+                if done:
+                    break
+
+                # Update state
+                state = next_state
+
+            episode_rewards[i_episode].append(total_reward)
+            episode_duration[i_episode].append(duration)
+
+            # Distill for each environment
+            finish_episode(models[i_env + 1], models[0], optimizers[i_env + 1], optimizers[0], alpha, beta, gamma)
+
+        if i_episode % log_interval == 0:
+            for i in range(tasks):
+                print('Episode: {}\tEnv: {}\tDuration: {}\tTotal Reward: {:.2f}'.format(
+                    i_episode, i, episode_duration[i_episode][i], episode_rewards[i_episode][i]))
+
+    np.save(file_name + '-distral0-rewards', episode_rewards)
+    np.save(file_name + '-distral0-duration', episode_duration)
+
+    print('Completed')
