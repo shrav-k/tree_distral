@@ -67,11 +67,11 @@ def finish_episode(policy, distilled, opt_policy, opt_distilled, alpha, beta, ga
     for log_prob_i, log_prob_0, d, r in zip(policy.saved_actions, distilled.saved_actions,
         discounts, rewards):
         reward_losses.append(-d * tf.constant(r))
-        distill_losses.append(-((d*alpha_const)/beta_const) * log_prob_0)
+        distilled_losses.append(-((d*alpha_const)/beta_const) * log_prob_0)
         entropy_losses.append((d/beta)*log_prob_i)
     
     with tf.GradientTape() as tape:
-        loss = tf.stack(reward_losses).sum() + tf.stack(entropy_losses.sum()) + torch.stack(distill_losses).sum()
+        loss = tf.stack(reward_losses).sum() + tf.stack(entropy_losses.sum()) + torch.stack(distilled_losses).sum()
 
     policy_gradients = tape.gradient(loss, policy.trainable_variables)
     opt_policy.apply_gradients(zip(policy_gradients, policy.trainable_variables))
