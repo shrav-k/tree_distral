@@ -7,6 +7,8 @@ from tensorflow.keras.optimizers import Adam
 import math
 import random
 import numpy as np
+from envs.gridworld_env import GridworldEnv
+
 
 class DQN(Model):
     """
