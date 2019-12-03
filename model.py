@@ -19,16 +19,19 @@ class DQN(Model):
     def __init__(self,input_size,num_actions,layer_size,depth):
         super(DQN, self).__init__()
         self.dqnlayers = []
-        self.dqnlayers.append(Dense(layer_size, input_shape=(input_size,)))
+        self.dqnlayers.append(Dense(layer_size, input_dim=input_size))
         for _ in range(depth):
-            self.dqnlayers.append(Dense(layer_size,layer_size))
-        self.dqnlayers.append(Dense(layer_size,num_actions))
+            self.dqnlayers.append(Dense(layer_size))
+        self.dqnlayers.append(Dense(num_actions))
 
 
-    def forward(self, x):
+    def call(self, x):
+        print("hello")
         for i in range(0,len(self.dqnlayers) - 1):
             x = self.dqnlayers[i](x)
             x = LeakyReLU(x)
+            print(i, "in here")
+        print("bye")
         return self.dqnlayers[len(self.dqnlayers) - 1](x)
 
 
