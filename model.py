@@ -18,18 +18,18 @@ class DQN(Model):
     rewards = []
     def __init__(self,input_size,num_actions,layer_size,depth):
         super(DQN, self).__init__()
-        self.layers = []
-        self.layers.append(Dense(layer_size, input_shape=(input_size,)))
+        self.dqnlayers = []
+        self.dqnlayers.append(Dense(layer_size, input_shape=(input_size,)))
         for _ in range(depth):
-            self.layers.append(Dense(layer_size,layer_size))
-        self.layers.append(Dense(layer_size,num_actions))
+            self.dqnlayers.append(Dense(layer_size,layer_size))
+        self.dqnlayers.append(Dense(layer_size,num_actions))
 
 
     def forward(self, x):
-        for i in range(0,len(self.layers) - 1):
-            x = self.layers[i](x)
+        for i in range(0,len(self.dqnlayers) - 1):
+            x = self.dqnlayers[i](x)
             x = LeakyReLU(x)
-        return self.layers[len(self.layers) - 1](x)
+        return self.dqnlayers[len(self.dqnlayers) - 1](x)
 
 
 
