@@ -4,6 +4,7 @@ from tensorflow.keras.layers import Dense, Flatten, Conv2D
 from tensorflow.keras import Model
 from tensorflow.compat.v1.keras.layers import LeakyReLU, Input
 from tensorflow.keras.optimizers import Adam
+import tensorflow_probability as tfp
 import math
 import random
 import numpy as np
@@ -26,12 +27,9 @@ class DQN(Model):
 
 
     def call(self, x):
-        print("hello")
         x = Flatten()(x)
         for i in range(0,len(self.dqnlayers) - 1):
             x = self.dqnlayers[i](x)
-            #x = LeakyReLU(x)
-        print("bye")
         return self.dqnlayers[len(self.dqnlayers) - 1](x)
 
 
@@ -39,13 +37,10 @@ def select_action(state,model_policy , distilled_policy):
 
     #TODO: may need to do formatting for the state
     # Run the policy
-    print("State shape: ")
-    print(state.shape)
-    print(type(state))
     probs = model_policy(state)
 
     # Obtain the most probable action for the policy
-    m = tf.random.categorical(probs)
+    m = tfp.distributions.Categorical(probs = probs)
     action =  m.sample()
     model_policy.saved_actions.append(m.log_prob(action))
 
@@ -54,7 +49,7 @@ def select_action(state,model_policy , distilled_policy):
     probs0 = distilled_policy(state)
 
     # Obtain the most probably action for the distilled policy
-    m = tf.random.categorical(probs0)
+    m = tfp.distributions.Categorical(probs = probs0)
     action_tmp =  m.sample()
     distilled_policy.saved_actions.append(m.log_prob(action_tmp))
 
