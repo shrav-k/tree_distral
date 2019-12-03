@@ -2,7 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import tensorflow as tf
 from tensorflow.keras.layers import Dense, Flatten, Conv2D
 from tensorflow.keras import Model
-from tensorflow.compat.v1.keras.layers import LeakyReLU
+from tensorflow.compat.v1.keras.layers import LeakyReLU, Input
 from tensorflow.keras.optimizers import Adam
 import math
 import random
@@ -19,27 +19,29 @@ class DQN(Model):
     def __init__(self,input_size,num_actions,layer_size,depth):
         super(DQN, self).__init__()
         self.dqnlayers = []
-        self.dqnlayers.append(Dense(layer_size, input_dim=input_size))
+        self.dqnlayers.append(Dense(layer_size,activation='relu'))
         for _ in range(depth):
-            self.dqnlayers.append(Dense(layer_size))
+            self.dqnlayers.append(Dense(layer_size,activation='relu'))
         self.dqnlayers.append(Dense(num_actions))
 
 
     def call(self, x):
         print("hello")
+        x = Flatten()(x)
         for i in range(0,len(self.dqnlayers) - 1):
             x = self.dqnlayers[i](x)
-            x = LeakyReLU(x)
-            print(i, "in here")
+            #x = LeakyReLU(x)
         print("bye")
         return self.dqnlayers[len(self.dqnlayers) - 1](x)
-
 
 
 def select_action(state,model_policy , distilled_policy):
 
     #TODO: may need to do formatting for the state
     # Run the policy
+    print("State shape: ")
+    print(state.shape)
+    print(type(state))
     probs = model_policy(state)
 
     # Obtain the most probable action for the policy
@@ -96,6 +98,9 @@ def trainDistral(file_name="Distral_1col", list_of_envs=[GridworldEnv(5), Gridwo
     input_size = list_of_envs[0].observation_space.shape[0]
     num_actions = list_of_envs[0].action_space.n
     tasks = len(list_of_envs)
+
+    print("Input size: " + str(input_size))
+    print("Number actions: " + str(num_actions))
 
     # Define our set of policies, including distilled one
     models = [DQN(input_size, num_actions,64,2) for _ in range(tasks + 1)]
