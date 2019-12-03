@@ -67,7 +67,7 @@ def finish_episode(policy, distilled, opt_policy, opt_distilled, alpha, beta, ga
     discounts = [gamma ** i for i in reversed(range(len(policy.rewards[::-1])))]
 
     for log_prob_i, log_prob_0, d, r in zip(policy.saved_actions, distilled.saved_actions,
-        discounts, rewards):
+        discounts, policy.rewards):
         reward_losses.append(-d * tf.constant(r))
         distilled_losses.append(-((d*alpha_const)/beta_const) * log_prob_0)
         entropy_losses.append((d/beta)*log_prob_i)
