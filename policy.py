@@ -109,7 +109,8 @@ class DistralTrainer:
 							break
 
 					loss = reward_loss + distilled_loss + entropy_loss
-					print(loss)
+					if ep_num % 10 == 0:
+						print(i, loss, total_reward)
 
 				policy_gradients = policy_tape.gradient(loss, policy.trainable_variables)
 				policy_opt.apply_gradients(zip(policy_gradients, policy.trainable_variables))
@@ -121,10 +122,11 @@ class DistralTrainer:
 					episode_rewards[ep_num].append(total_reward)
 					episode_durations[ep_num].append(duration)
 
-		return episode_rewards, episode_durations
+		if save:
+			return episode_rewards, episode_durations
 
 ### Run Model ###
 def train_distral(envs=[GridworldEnv(5), GridworldEnv(4)]):
 	distral_trainer = DistralTrainer(envs)
-	episode_rewards, episode_durations = distral_trainer.train()
+	episode_rewards, episode_durations = distral_trainer.train(save=True)
 	print(episode_rewards, episode_durations)
