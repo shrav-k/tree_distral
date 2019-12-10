@@ -71,6 +71,29 @@ def select_action(state,model_policy , distilled_policy):
     # Return the most probable action for the policy
     return action
 
+def distral_loss(alpha, beta, gamma):
+    alpha_const = tf.constant(alpha)
+    beta_const = tf.constant(beta)
+    gamma_const = tf.constant(gamma)
+
+    def loss(policy, distilled):
+        reward_losses = []
+        distilled_losses = []
+        entropy_losses = []
+
+        discounts = [gamma_const ** i for i in reversed(range(len(policy.rewards[::-1])))]
+
+        for log_prob_i, log_prob_0, d, r in zip(policy.saved_actions, distilled.saved_actions,
+            discounts, policy.rewards):
+            reward_losses.append(-d * tf.constant(r))
+            distilled_losses.append(-((d*alpha_const)/beta_const) * log_prob_0)
+            entropy_losses.append((d/beta)*log_prob_i)
+
+        return tf.reduce_sum(reward_losses) + tf.reduce_sum(entropy_losses) + tf.reduce_sum(distilled_losses)
+
+    return loss
+
+"""
 def finish_episode(policy, distilled, opt_policy, opt_distilled, alpha, beta, gamma):
     reward_losses = []
     distilled_losses = []
@@ -88,14 +111,14 @@ def finish_episode(policy, distilled, opt_policy, opt_distilled, alpha, beta, ga
         entropy_losses.append((d/beta)*log_prob_i)
     
     with tf.GradientTape() as tape:
-        loss = tf.stack(reward_losses).sum() + tf.stack(entropy_losses.sum()) + tf.stack(distilled_losses).sum()
-
+        loss = tf.reduce_sum(reward_losses) + tf.reduce_sum(entropy_losses) + tf.reduce_sum(distilled_losses)
 
     policy_gradients = tape.gradient(loss, policy.trainable_variables)
     opt_policy.apply_gradients(zip(policy_gradients, policy.trainable_variables))
 
     distilled_gradients = tape.gradient(loss, distilled.trainable_variables)
     opt_distilled.apply_gradients(zip(distilled_gradients, distilled.trainable_variables))
+"""
 
 def trainDistral(file_name="Distral_1col", list_of_envs=[GridworldEnv(5), GridworldEnv(4)], batch_size=128,
                      gamma=0.80, alpha=0.5,
@@ -134,29 +157,40 @@ def trainDistral(file_name="Distral_1col", list_of_envs=[GridworldEnv(5), Gridwo
             # Store duration of each episode per env
             duration = 0
 
-            for t in range(max_num_steps_per_episode):
+            loss_func = distral_loss(alpha, beta, gamma)
 
-                # Run our policy
-                action = select_action(state, models[i_env + 1], models[0])
+            with tf.GradientTape() as policy_tape, tf.GradientTape() as distilled_tape:
+                for t in range(max_num_steps_per_episode):
 
-                print("Output action shape: " + str(action.shape))
+                    # Run our policy
+                    action = select_action(state, models[i_env + 1], models[0])
 
-                next_state, reward, done, _ = env.step(action)
-                models[i_env + 1].rewards.append(reward)
-                total_reward += reward
-                duration += 1
+                    print("Output action shape: " + str(action.shape))
 
-                if done:
-                    break
+                    next_state, reward, done, _ = env.step(action)
+                    models[i_env + 1].rewards.append(reward)
+                    total_reward += reward
+                    duration += 1
 
-                # Update state
-                state = next_state
+                    if done:
+                        break
+
+                    # Update state
+                    state = next_state
+
+                loss = loss_func(models[i_env + 1], models[0])
+
+            policy_gradients = policy_tape.gradient(loss, models[i_env + 1].trainable_variables)
+            optimizers[i_env + 1].apply_gradients(zip(policy_gradients, models[i_env + 1].trainable_variables))
+
+            distilled_gradients = distilled_tape.gradient(loss, models[0].trainable_variables)
+            optimizers[0].apply_gradients(zip(distilled_gradients, models[0].trainable_variables))
 
             episode_rewards[i_episode].append(total_reward)
             episode_duration[i_episode].append(duration)
 
             # Distill for each environment
-            finish_episode(models[i_env + 1], models[0], optimizers[i_env + 1], optimizers[0], alpha, beta, gamma)
+            # finish_episode(models[i_env + 1], models[0], optimizers[i_env + 1], optimizers[0], alpha, beta, gamma)
 
         if i_episode % log_interval == 0:
             for i in range(tasks):
