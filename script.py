@@ -1,3 +1,3 @@
 import model
 
-model.trainDistral()
+model.trainDistral( )
