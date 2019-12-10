@@ -19,29 +19,44 @@ class DQN(Model):
     rewards = []
     def __init__(self,input_size,num_actions,layer_size,depth):
         super(DQN, self).__init__()
+        '''
         self.dqnlayers = []
         self.dqnlayers.append(Dense(layer_size,activation='relu'))
         for _ in range(depth):
             self.dqnlayers.append(Dense(layer_size,activation='relu'))
         self.dqnlayers.append(Dense(num_actions))
+        '''
+        self.d1 = Dense(layer_size,activation='relu',input_shape= (input_size,))
+        self.d2 = Dense(layer_size,activation='relu')
+        self.d3 = Dense(num_actions,activation='softmax')
 
 
     def call(self, x):
+        '''
         x = Flatten()(x)
-        for i in range(0,len(self.dqnlayers) - 1):
+        for i in range(0,len(self.dqnlayers)):
             x = self.dqnlayers[i](x)
-        return self.dqnlayers[len(self.dqnlayers) - 1](x)
+        return tf.nn.softmax(x)
+        '''
+        x =  tf.reshape(x,[-1,3])
+        x = self.d1(x)
+        x = self.d2(x)
+        x = self.d3(x)
+        return x
 
 
 def select_action(state,model_policy , distilled_policy):
 
     #TODO: may need to do formatting for the state
     # Run the policy
+    print("State: ")
+    print(state)
     probs = model_policy(state)
-
+    print("probs: " + str(probs))
     # Obtain the most probable action for the policy
     m = tfp.distributions.Categorical(probs = probs)
     action =  m.sample()
+    print(action)
     model_policy.saved_actions.append(m.log_prob(action))
 
 
@@ -123,6 +138,8 @@ def trainDistral(file_name="Distral_1col", list_of_envs=[GridworldEnv(5), Gridwo
 
                 # Run our policy
                 action = select_action(state, models[i_env + 1], models[0])
+
+                print("Output action shape: " + str(action.shape))
 
                 next_state, reward, done, _ = env.step(action)
                 models[i_env + 1].rewards.append(reward)
