@@ -20,8 +20,6 @@ class Policy(Model):
 		self.layer_size = layer_size
 		self.depth = depth
 
-		self.saved_actions = []
-		self.saved_rewards = []
 		self._build_graph()
 
 	def _build_graph(self):
@@ -38,10 +36,6 @@ class Policy(Model):
 			x = self.fc_layers[i](x)
 		action_probs = self.softmax_layer(x)
 		return action_probs
-
-	def clear(self):
-		self.saved_actions.clear()
-		self.saved_rewards.clear()
 
 
 class BaseDistralTrainer:
@@ -96,7 +90,7 @@ class BaseDistralTrainer:
 				policy_probs = policy(state)
 				distilled_probs = distilled(state)
 
-				action = tf.math.argmax(policy_probs, axis=1) # Change to sample from distribution
+				action = tf.random.categorical(policy_probs, 1)
 				action = int(action) #Cast to integer
 
 				policy_log_prob = tf.math.log(policy_probs[0][action])
