@@ -5,7 +5,7 @@ from tensorflow.keras.layers import Dense, Flatten, Conv2D
 from tensorflow.keras.optimizers import Adam
 from envs.gridworld_env import GridworldEnv
 
-### Classes ###
+### Base Classes ###
 
 class Policy(Model):
 
@@ -40,7 +40,7 @@ class Policy(Model):
 		self.saved_rewards.clear()
 
 
-class DistralTrainer:
+class BaseDistralTrainer:
 
 	def __init__(self, envs, alpha=0.5, beta=0.005, gamma=0.8,
 		learning_rate=0.001, layer_size=64, depth=2):
@@ -56,14 +56,23 @@ class DistralTrainer:
 		self.num_actions = envs[0].action_space.n
 		self.num_tasks = len(envs)
 
-		self.distilled = self.make_policy()
-		self.distilled_opt = Adam(self.learning_rate)
-
-		self.policies = [self.make_policy() for _ in range(self.num_tasks)]
-		self.policies_opt = [Adam(self.learning_rate) for _ in range(self.num_tasks)]
+		self.distilled, self.distilled_opt = self.make_distilled()
+		self.policies, self.policies_opt = self.make_policies()
 
 	def make_policy(self):
 		return Policy(self.input_size, self.num_actions, self.layer_size, self.depth)
+
+	def make_distilled(self):
+		raise NotImplementedError
+
+	def make_policies(self):
+		raise NotImplementedError
+
+	def get_distilled(self, policy_num):
+		raise NotImplementedError
+
+	def get_policies(self, policy_num):
+		raise NotImplementedError
 
 	def train(self, num_episodes=1000, max_num_steps_per_episode=100, save=False):
 		if save:
@@ -77,10 +86,8 @@ class DistralTrainer:
 					duration = 0
 
 				state = env.reset()
-				policy = self.policies[i]
-				policy_opt = self.policies_opt[i]
-				distilled = self.distilled
-				distilled_opt = self.distilled_opt
+				distilled, distilled_opt = self.get_distilled(i)
+				policy, policy_opt = self.get_policies(i)
 
 				with tf.GradientTape() as policy_tape, tf.GradientTape() as distilled_tape:
 					discount = 1
@@ -132,8 +139,44 @@ class DistralTrainer:
 		if save:
 			return episode_rewards, episode_durations
 
+## Specific Classes ##
+
+class RegularDistralTrainer(BaseDistralTrainer):
+	def __init__(self, envs, alpha=0.5, beta=0.005, gamma=0.8,
+		learning_rate=0.001, layer_size=64, depth=2):
+		super(RegularDistralTrainer, self).__init__(envs, alpha, beta, gamma, learning_rate, layer_size, depth)
+
+	def make_distilled(self):
+		return self.make_policy(), Adam(self.learning_rate)
+
+	def make_policies(self):
+		return [self.make_policy() for _ in range(self.num_tasks)], [Adam(self.learning_rate) for _ in range(self.num_tasks)]
+
+	def get_distilled(self, policy_num):
+		return self.distilled, self.distilled_opt
+
+	def get_policies(self, policy_num):
+		return self.policies[policy_num], self.policies_opt[policy_num]
+
+class HeirarchicalDistralTrainer(BaseDistralTrainer):
+	def __init__(self, envs, alpha=0.5, beta=0.005, gamma=0.8,
+		learning_rate=0.001, layer_size=64, depth=2):
+		super(HeirarchicalDistralTrainer, self).__init__(envs, alpha, beta, gamma, learning_rate, layer_size, depth)
+
+	def make_distilled(self):
+		raise NotImplementedError
+
+	def make_policies(self):
+		raise NotImplementedError
+
+	def get_distilled(self, policy_num):
+		raise NotImplementedError
+
+	def get_policies(self, policy_num):
+		raise NotImplementedError
+
 ### Run Model ###
 def train_distral(envs=[GridworldEnv(5), GridworldEnv(4)]):
-	distral_trainer = DistralTrainer(envs)
+	distral_trainer = RegularDistralTrainer(envs)
 	episode_rewards, episode_durations = distral_trainer.train(save=True)
 	print(episode_rewards, episode_durations)
