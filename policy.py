@@ -175,6 +175,6 @@ class HeirarchicalDistralTrainer(BaseDistralTrainer):
 
 ### Run Model ###
 def train_distral(envs=[GridworldEnv(5), GridworldEnv(4)]):
-	distral_trainer = RegularDistralTrainer(envs, alpha=1, beta=0.5)
-	episode_rewards, episode_durations = distral_trainer.train(max_num_steps_per_episode=1000)
+	distral_trainer = RegularDistralTrainer(envs)
+	episode_rewards, episode_durations = distral_trainer.train()
 	return episode_rewards, episode_durations
