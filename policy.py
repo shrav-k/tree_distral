@@ -27,7 +27,9 @@ class Policy(Model):
 		self.softmax_layer = Dense(self.num_actions, activation='sigmoid')
 
 	def call(self, inputs):
-		x = tf.reshape(inputs, [-1, 3])
+		#Reshape input if only one dimension
+		x = tf.reshape(inputs, [-1] + [self.input_size]) if len(inputs.shape) == 1  else inputs
+
 		for i in range(self.depth):
 			x = self.fc_layers[i](x)
 		action_probs = self.softmax_layer(x)
@@ -63,7 +65,7 @@ class DistralTrainer:
 	def make_policy(self):
 		return Policy(self.input_size, self.num_actions, self.layer_size, self.depth)
 
-	def train(self, num_episodes=1000, max_num_steps_per_episode=10, save=False):
+	def train(self, num_episodes=1000, max_num_steps_per_episode=100, save=False):
 		if save:
 			episode_rewards = [[] for i in range(num_episodes)]
 			episode_durations = [[] for i in range(num_episodes)]
@@ -91,8 +93,13 @@ class DistralTrainer:
 						distilled_probs = distilled(state)
 
 						action = tf.math.argmax(policy_probs, axis=1) # Change to sample from distribution
-						policy_log_prob = tf.math.log(policy_probs[0][action[0]])
-						distilled_log_prob = tf.math.log(distilled_probs[0][action[0]])
+
+						#Cast to integer
+						action = int(action)
+
+						policy_log_prob = tf.math.log(policy_probs[0][action])
+						distilled_log_prob = tf.math.log(distilled_probs[0][action])
+
 
 						next_state, reward, done, _ = env.step(action)
 
