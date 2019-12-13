@@ -170,7 +170,7 @@ class RegularDistralTrainer(BaseDistralTrainer):
         super(RegularDistralTrainer, self).__init__(envs, alpha, beta, gamma, learning_rate, layer_size, depth)
 
     def make_distilled(self):
-        return self.make_policy(), Adam(self.learning_rate)
+        return self.make_policy(888), Adam(self.learning_rate)
 
     def make_policies(self):
         return [self.make_policy(seed = i) for i in range(self.num_tasks)], [Adam(self.learning_rate) for _ in
