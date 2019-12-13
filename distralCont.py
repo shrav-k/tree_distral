@@ -17,6 +17,8 @@ class OUNoise:
     """Ornstein-Uhlenbeck process."""
 
     def __init__(self, size, seed, mu=0., theta=0.15, sigma=0.2):
+        print(size)
+        print(type(size))
         """Initialize parameters and noise process."""
         self.mu = mu * np.ones(size)
         self.theta = theta
@@ -75,7 +77,6 @@ class BaseDistralTrainer:
         self.depth = depth
 
         self.input_size = envs[0].observation_space.shape[0]
-        print(self.input_size)
         self.num_actions = envs[0].action_space
         self.num_tasks = len(envs)
 
