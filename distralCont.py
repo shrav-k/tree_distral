@@ -75,7 +75,8 @@ class BaseDistralTrainer:
         self.depth = depth
 
         self.input_size = envs[0].observation_space.shape[0]
-        self.num_actions = envs[0].action_space.n
+        print(self.input_size)
+        self.num_actions = envs[0].action_space
         self.num_tasks = len(envs)
 
         self.distilled, self.distilled_opt = self.make_distilled()
