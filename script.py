@@ -67,7 +67,7 @@ def lava_gap(wrapper = None,n = 4):
     return envs
 
 params = {
-"tree" : False,
+"tree" : True,
 "envs" : empty_room(),
 "alpha" : 0.5,
 "beta" : 0.005,
@@ -77,18 +77,18 @@ params = {
 "depth" : 2,
 "num_distilled" : 2,
 "set_parent_interval" : 10,
-"c" : 0.5
+"c" : 0.5,
 }
 
 
-def run_experiment(params):
+def run_experiment(params,num_episodes = 1000, max_episode = 100):
     if(params['tree']):
         distral_trainer = policy.HeirarchicalDistralTrainer(params)
-        episode_rewards, episode_durations = distral_trainer.train()
+        episode_rewards, episode_durations = distral_trainer.train(num_episodes,max_episode)
         return episode_rewards, episode_durations
     else:
         tree_trainer = policy.RegularDistralTrainer(params)
-        episode_rewards, episode_durations = tree_trainer.train()
+        episode_rewards, episode_durations = tree_trainer.train(num_episodes,max_episode)
         return episode_rewards, episode_durations
 
 

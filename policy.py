@@ -49,6 +49,7 @@ class BaseDistralTrainer:
 		self.layer_size = params['layer_size']
 		self.depth = params['depth']
 
+
 		try:
 			self.input_size = self.envs[0].observation_space.shape[0]
 		except:
