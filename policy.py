@@ -30,7 +30,7 @@ class Policy(Model):
 
 	def call(self, inputs):
 		#Reshape input if only one dimension
-		x = tf.reshape(inputs, [-1] + [self.input_size]) if len(inputs.shape) == 1  else inputs
+		x = tf.reshape(inputs, [-1] + [self.input_size]) if (len(inputs.shape) == 1 or len(inputs.shape) == 3) else inputs
 
 		for i in range(self.depth):
 			x = self.fc_layers[i](x)
@@ -50,7 +50,11 @@ class BaseDistralTrainer:
 		self.layer_size = layer_size
 		self.depth = depth
 
-		self.input_size = envs[0].observation_space.shape[0]
+		try:
+			self.input_size = envs[0].observation_space.shape[0]
+		except:
+			self.input_size = np.prod(envs[0].observation_space['image'].shape)
+
 		self.num_actions = envs[0].action_space.n
 		self.num_tasks = len(envs)
 
@@ -100,6 +104,10 @@ class RegularDistralTrainer(BaseDistralTrainer):
 		duration = 0
 
 		state = env.reset()
+
+		if isinstance(state, dict):
+			state = state['image']
+
 		distilled, distilled_opt = self.get_distilled(policy_num)
 		policy, policy_opt = self.get_policies(policy_num)
 
@@ -120,6 +128,9 @@ class RegularDistralTrainer(BaseDistralTrainer):
 				distilled_log_prob = tf.math.log(distilled_probs[0][action])
 
 				next_state, reward, done, _ = env.step(action)
+
+				if isinstance(next_state, dict):
+					next_state = next_state['image']
 
 				reward_loss += -discount * reward
 				distilled_loss += -discount * self.alpha / self.beta * distilled_log_prob
