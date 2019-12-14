@@ -30,7 +30,7 @@ class Policy(Model):
 
 	def call(self, inputs):
 		#Reshape input if only one dimension
-		x = tf.reshape(inputs, [-1] + [self.input_size]) if len(inputs.shape) == 1  else inputs
+		x = tf.reshape(inputs, [-1] + [self.input_size]) if (len(inputs.shape) == 1 or len(inputs.shape) == 3) else inputs
 
 		for i in range(self.depth):
 			x = self.fc_layers[i](x)
@@ -40,19 +40,23 @@ class Policy(Model):
 
 class BaseDistralTrainer:
 
-	def __init__(self, envs, alpha=0.5, beta=0.005, gamma=0.8,
-		learning_rate=0.001, layer_size=64, depth=2):
-		self.envs = envs
-		self.alpha = alpha
-		self.beta = beta
-		self.gamma = gamma
-		self.learning_rate = learning_rate
-		self.layer_size = layer_size
-		self.depth = depth
+	def __init__(self, params):
+		self.envs = params['envs']
+		self.alpha = params['alpha']
+		self.beta = params['beta']
+		self.gamma = params['gamma']
+		self.learning_rate = params['learning_rate']
+		self.layer_size = params['layer_size']
+		self.depth = params['depth']
 
-		self.input_size = envs[0].observation_space.shape[0]
-		self.num_actions = envs[0].action_space.n
-		self.num_tasks = len(envs)
+
+		try:
+			self.input_size = self.envs[0].observation_space.shape[0]
+		except:
+			self.input_size = np.prod(self.envs[0].observation_space['image'].shape)
+
+		self.num_actions = self.envs[0].action_space.n
+		self.num_tasks = len(self.envs)
 
 		self.distilled, self.distilled_opt = self.make_distilled()
 		self.policies, self.policies_opt = self.make_policies()
@@ -77,6 +81,10 @@ class BaseDistralTrainer:
 		duration = 0
 
 		state = env.reset()
+
+		if isinstance(state, dict):
+			state = state['image']
+
 		distilled, distilled_opt = self.get_distilled(policy_num)
 		policy, policy_opt = self.get_policies(policy_num)
 
@@ -97,6 +105,9 @@ class BaseDistralTrainer:
 				distilled_log_prob = tf.math.log(distilled_probs[0][action])
 
 				next_state, reward, done, _ = env.step(action)
+
+				if isinstance(next_state, dict):
+					next_state = next_state['image']
 
 				reward_loss += -discount * reward
 				distilled_loss += -discount * self.alpha / self.beta * distilled_log_prob
@@ -119,6 +130,25 @@ class BaseDistralTrainer:
 		distilled_opt.apply_gradients(zip(distilled_gradients, distilled.trainable_variables))
 
 		return loss, total_reward, duration
+		
+
+## Specific Classes ##
+
+class RegularDistralTrainer(BaseDistralTrainer):
+	def __init__(self, params):
+		super(RegularDistralTrainer, self).__init__(params)
+
+	def make_distilled(self):
+		return self.make_policy(), Adam(self.learning_rate)
+
+	def make_policies(self):
+		return [self.make_policy() for _ in range(self.num_tasks)], [Adam(self.learning_rate) for _ in range(self.num_tasks)]
+
+	def get_distilled(self, policy_num):
+		return self.distilled, self.distilled_opt
+
+	def get_policies(self, policy_num):
+		return self.policies[policy_num], self.policies_opt[policy_num]
 
 	def train(self, num_episodes=1000, max_num_steps_per_episode=100):
 		episode_rewards = [[] for i in range(num_episodes)]
@@ -134,33 +164,18 @@ class BaseDistralTrainer:
 
 		return episode_rewards, episode_durations
 
-## Specific Classes ##
-
-class RegularDistralTrainer(BaseDistralTrainer):
-	def __init__(self, envs, alpha=0.5, beta=0.005, gamma=0.8,
-		learning_rate=0.001, layer_size=64, depth=2):
-		super(RegularDistralTrainer, self).__init__(envs, alpha, beta, gamma, learning_rate, layer_size, depth)
-
-	def make_distilled(self):
-		return self.make_policy(), Adam(self.learning_rate)
-
-	def make_policies(self):
-		return [self.make_policy() for _ in range(self.num_tasks)], [Adam(self.learning_rate) for _ in range(self.num_tasks)]
-
-	def get_distilled(self, policy_num):
-		return self.distilled, self.distilled_opt
-
-	def get_policies(self, policy_num):
-		return self.policies[policy_num], self.policies_opt[policy_num]
-
 class HeirarchicalDistralTrainer(BaseDistralTrainer):
-	def __init__(self, envs, alpha=0.5, beta=0.005, gamma=0.8,
-		learning_rate=0.001, layer_size=64, depth=2,
-		num_distilled=2, c=0.005):
-		super(HeirarchicalDistralTrainer, self).__init__(envs, alpha, beta, gamma, learning_rate, layer_size, depth)
-		self.num_distilled = num_distilled
-		self.c = 0.005
+	def __init__(self,params):
 
+		self.num_distilled = params['num_distilled']
+		self.set_parent_interval = params['set_parent_interval']
+		self.c = params['c']
+
+		super(HeirarchicalDistralTrainer, self).__init__(params)
+
+		self.distilled_training_steps = np.zeros((self.num_distilled, self.num_tasks))
+		self.policy_parent_map = {}	
+		
 	def make_distilled(self):
 		return [self.make_policy() for _ in range(self.num_distilled)], [Adam(self.learning_rate) for _ in range(self.num_distilled)]
 
@@ -168,13 +183,71 @@ class HeirarchicalDistralTrainer(BaseDistralTrainer):
 		return [self.make_policy() for _ in range(self.num_tasks)], [Adam(self.learning_rate) for _ in range(self.num_tasks)]
 
 	def get_distilled(self, policy_num):
-		raise NotImplementedError
+		index = self.policy_parent_map[policy_num]
+		return self.distilled[index], self.distilled_opt[index]
 
 	def get_policies(self, policy_num):
 		return self.policies[policy_num], self.policies_opt[policy_num]
 
-### Run Model ###
-def train_distral(envs=[GridworldEnv(5), GridworldEnv(4)]):
-	distral_trainer = RegularDistralTrainer(envs)
-	episode_rewards, episode_durations = distral_trainer.train()
-	return episode_rewards, episode_durations
+	def get_distilled_parent(self, policy_num, env, max_num_steps_per_episode):
+		state = env.reset()
+
+		#Extra check for new mazes
+		if isinstance(state, dict):
+			state = state['image']
+
+		policy, policy_opt = self.get_policies(policy_num)
+		policy_probs_list = []
+		distilled_probs_list = [[] for i in range(self.num_distilled)]
+
+		for t in range(max_num_steps_per_episode):
+			policy_probs_list.append(policy(state)[0])
+			for i in range(self.num_distilled):
+				distilled_probs_list[i].append(self.distilled[i](state)[0])
+
+			action = tf.random.categorical([policy_probs_list[t]], 1)
+			action = int(action) #Cast to integer
+			next_state, reward, done, _ = env.step(action)
+
+			if isinstance(next_state, dict):
+				next_state = next_state['image']
+
+			if done:
+				break
+
+		policy_probs_list = np.array(policy_probs_list)
+		distilled_probs_list = np.array(distilled_probs_list)
+		best_loss = float("inf")
+		best_parent = -1
+
+		for i in range(self.num_distilled):
+			kl_terms = [sum(p / d) for p, d in zip(policy_probs_list, distilled_probs_list[i])]
+			if self.distilled_training_steps[i][policy_num] != 0:
+				training_term = np.sqrt(np.sum(self.distilled_training_steps[:,policy_num]) / self.distilled_training_steps[i][policy_num])
+			else:
+				training_term = 0
+			loss = sum(kl_terms) - self.c * training_term
+			if loss < best_loss:
+				best_loss = loss
+				best_parent = i
+
+		return best_parent
+
+	def train(self, num_episodes=1000, max_num_steps_per_episode=100):
+		episode_rewards = [[] for i in range(num_episodes)]
+		episode_durations = [[] for i in range(num_episodes)]
+
+		for ep_num in range(num_episodes):
+			for i, env in enumerate(self.envs):
+				if ep_num % self.set_parent_interval == 0:
+					distilled_parent = self.get_distilled_parent(i, env, max_num_steps_per_episode)
+					self.policy_parent_map[i] = distilled_parent
+					print("distilled parent ", distilled_parent, " for policy ", i)
+					self.distilled_training_steps[distilled_parent] += self.set_parent_interval
+				loss, total_reward, duration = self.run_episode(i, env, max_num_steps_per_episode)
+
+				print(i, loss, total_reward)
+				episode_rewards[ep_num].append(total_reward)
+				episode_durations[ep_num].append(duration)
+
+		return episode_rewards, episode_durations
