@@ -2,6 +2,8 @@ import policy
 import gym
 import gym_minigrid
 from gym_minigrid.wrappers import FlatObsWrapper,RGBImgObsWrapper, OneHotPartialObsWrapper
+import numpy as np
+from time import gmtime, strftime
 
 #https://github.com/maximecb/gym-minigrid?fbclid=IwAR2FTwWfbP5W-VWNJ8b13jvyzK09bbyINaISvswWJgqZlyORr-4raZWYess
 
@@ -80,15 +82,16 @@ params = {
 "c" : 0.5,
 }
 
-
 def run_experiment(params,num_episodes = 1000, max_episode = 100):
     if(params['tree']):
         distral_trainer = policy.HeirarchicalDistralTrainer(params)
         episode_rewards, episode_durations = distral_trainer.train(num_episodes,max_episode)
+        np.save(str(params) + strftime("%Y-%m-%d %H:%M:%S", gmtime()),episode_rewards)
         return episode_rewards, episode_durations
     else:
         tree_trainer = policy.RegularDistralTrainer(params)
         episode_rewards, episode_durations = tree_trainer.train(num_episodes,max_episode)
+        np.save(str(params) + strftime("%Y-%m-%d %H:%M:%S", gmtime()),episode_rewards)
         return episode_rewards, episode_durations
 
 
