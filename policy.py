@@ -77,29 +77,6 @@ class BaseDistralTrainer:
 		raise NotImplementedError
 
 	def run_episode(self, policy_num, env, max_num_steps_per_episode):
-		raise NotImplementedError
-		
-
-## Specific Classes ##
-
-class RegularDistralTrainer(BaseDistralTrainer):
-	def __init__(self, envs, alpha=0.5, beta=0.005, gamma=0.8,
-		learning_rate=0.001, layer_size=64, depth=2):
-		super(RegularDistralTrainer, self).__init__(envs, alpha, beta, gamma, learning_rate, layer_size, depth)
-
-	def make_distilled(self):
-		return self.make_policy(), Adam(self.learning_rate)
-
-	def make_policies(self):
-		return [self.make_policy() for _ in range(self.num_tasks)], [Adam(self.learning_rate) for _ in range(self.num_tasks)]
-
-	def get_distilled(self, policy_num):
-		return self.distilled, self.distilled_opt
-
-	def get_policies(self, policy_num):
-		return self.policies[policy_num], self.policies_opt[policy_num]
-
-	def run_episode(self, policy_num, env, max_num_steps_per_episode):
 		total_reward = 0
 		duration = 0
 
@@ -153,6 +130,26 @@ class RegularDistralTrainer(BaseDistralTrainer):
 		distilled_opt.apply_gradients(zip(distilled_gradients, distilled.trainable_variables))
 
 		return loss, total_reward, duration
+		
+
+## Specific Classes ##
+
+class RegularDistralTrainer(BaseDistralTrainer):
+	def __init__(self, envs, alpha=0.5, beta=0.005, gamma=0.8,
+		learning_rate=0.001, layer_size=64, depth=2):
+		super(RegularDistralTrainer, self).__init__(envs, alpha, beta, gamma, learning_rate, layer_size, depth)
+
+	def make_distilled(self):
+		return self.make_policy(), Adam(self.learning_rate)
+
+	def make_policies(self):
+		return [self.make_policy() for _ in range(self.num_tasks)], [Adam(self.learning_rate) for _ in range(self.num_tasks)]
+
+	def get_distilled(self, policy_num):
+		return self.distilled, self.distilled_opt
+
+	def get_policies(self, policy_num):
+		return self.policies[policy_num], self.policies_opt[policy_num]
 
 	def train(self, num_episodes=1000, max_num_steps_per_episode=100):
 		episode_rewards = [[] for i in range(num_episodes)]
@@ -230,55 +227,6 @@ class HeirarchicalDistralTrainer(BaseDistralTrainer):
 				best_parent = i
 
 		return best_parent
-
-
-	def run_episode(self, policy_num, env, max_num_steps_per_episode):
-		total_reward = 0
-		duration = 0
-
-		state = env.reset()
-		distilled, distilled_opt = self.get_distilled(policy_num)
-		policy, policy_opt = self.get_policies(policy_num)
-
-		with tf.GradientTape() as policy_tape, tf.GradientTape() as distilled_tape:
-			discount = 1
-			reward_loss = 0
-			distilled_loss = 0
-			entropy_loss = 0 
-
-			for t in range(max_num_steps_per_episode):
-				policy_probs = policy(state)
-				distilled_probs = distilled(state)
-
-				action = tf.random.categorical(policy_probs, 1)
-				action = int(action) #Cast to integer
-
-				policy_log_prob = tf.math.log(policy_probs[0][action])
-				distilled_log_prob = tf.math.log(distilled_probs[0][action])
-
-				next_state, reward, done, _ = env.step(action)
-
-				reward_loss += -discount * reward
-				distilled_loss += -discount * self.alpha / self.beta * distilled_log_prob
-				entropy_loss += discount / self.beta * policy_log_prob
-
-				state = next_state
-				discount *= self.gamma
-				total_reward += reward
-				duration += 1
-
-				if done:
-					break
-
-			loss = reward_loss + distilled_loss + entropy_loss
-
-		policy_gradients = policy_tape.gradient(loss, policy.trainable_variables)
-		policy_opt.apply_gradients(zip(policy_gradients, policy.trainable_variables))
-
-		distilled_gradients = distilled_tape.gradient(loss, distilled.trainable_variables)
-		distilled_opt.apply_gradients(zip(distilled_gradients, distilled.trainable_variables))
-
-		return loss, total_reward, duration
 
 	def train(self, num_episodes=1000, max_num_steps_per_episode=100):
 		episode_rewards = [[] for i in range(num_episodes)]
