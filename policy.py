@@ -40,23 +40,22 @@ class Policy(Model):
 
 class BaseDistralTrainer:
 
-	def __init__(self, envs, alpha, beta, gamma,
-		learning_rate, layer_size, depth):
-		self.envs = envs
-		self.alpha = alpha
-		self.beta = beta
-		self.gamma = gamma
-		self.learning_rate = learning_rate
-		self.layer_size = layer_size
-		self.depth = depth
+	def __init__(self, params):
+		self.envs = params['envs']
+		self.alpha = params['alpha']
+		self.beta = params['beta']
+		self.gamma = params['gamma']
+		self.learning_rate = params['learning_rate']
+		self.layer_size = params['layer_size']
+		self.depth = params['depth']
 
 		try:
-			self.input_size = envs[0].observation_space.shape[0]
+			self.input_size = self.envs[0].observation_space.shape[0]
 		except:
-			self.input_size = np.prod(envs[0].observation_space['image'].shape)
+			self.input_size = np.prod(self.envs[0].observation_space['image'].shape)
 
-		self.num_actions = envs[0].action_space.n
-		self.num_tasks = len(envs)
+		self.num_actions = self.envs[0].action_space.n
+		self.num_tasks = len(self.envs)
 
 		self.distilled, self.distilled_opt = self.make_distilled()
 		self.policies, self.policies_opt = self.make_policies()
@@ -135,9 +134,8 @@ class BaseDistralTrainer:
 ## Specific Classes ##
 
 class RegularDistralTrainer(BaseDistralTrainer):
-	def __init__(self, envs, alpha=0.5, beta=0.005, gamma=0.8,
-		learning_rate=0.001, layer_size=64, depth=2):
-		super(RegularDistralTrainer, self).__init__(envs, alpha, beta, gamma, learning_rate, layer_size, depth)
+	def __init__(self, params):
+		super(RegularDistralTrainer, self).__init__(params)
 
 	def make_distilled(self):
 		return self.make_policy(), Adam(self.learning_rate)
@@ -166,15 +164,13 @@ class RegularDistralTrainer(BaseDistralTrainer):
 		return episode_rewards, episode_durations
 
 class HeirarchicalDistralTrainer(BaseDistralTrainer):
-	def __init__(self, envs, alpha=0.5, beta=0.005, gamma=0.8,
-		learning_rate=0.001, layer_size=64, depth=2,
-		num_distilled=2, set_parent_interval=10, c=0.5):
+	def __init__(self,params):
 
-		self.num_distilled = num_distilled
-		self.set_parent_interval = set_parent_interval
-		self.c = 0.005
+		self.num_distilled = params['num_distilled']
+		self.set_parent_interval = params['set_parent_interval']
+		self.c = params['c']
 
-		super(HeirarchicalDistralTrainer, self).__init__(envs, alpha, beta, gamma, learning_rate, layer_size, depth)
+		super(HeirarchicalDistralTrainer, self).__init__(params)
 
 		self.distilled_training_steps = np.zeros((self.num_distilled, self.num_tasks))
 		self.policy_parent_map = {}	
@@ -194,6 +190,11 @@ class HeirarchicalDistralTrainer(BaseDistralTrainer):
 
 	def get_distilled_parent(self, policy_num, env, max_num_steps_per_episode):
 		state = env.reset()
+
+		#Extra check for new mazes
+		if isinstance(state, dict):
+			state = state['image']
+
 		policy, policy_opt = self.get_policies(policy_num)
 		policy_probs_list = []
 		distilled_probs_list = [[] for i in range(self.num_distilled)]
@@ -206,6 +207,9 @@ class HeirarchicalDistralTrainer(BaseDistralTrainer):
 			action = tf.random.categorical([policy_probs_list[t]], 1)
 			action = int(action) #Cast to integer
 			next_state, reward, done, _ = env.step(action)
+
+			if isinstance(next_state, dict):
+				next_state = next_state['image']
 
 			if done:
 				break
@@ -246,14 +250,3 @@ class HeirarchicalDistralTrainer(BaseDistralTrainer):
 				episode_durations[ep_num].append(duration)
 
 		return episode_rewards, episode_durations
-
-### Run Model ###
-def train_distral(envs=[GridworldEnv(5), GridworldEnv(4)]):
-	distral_trainer = RegularDistralTrainer(envs)
-	episode_rewards, episode_durations = distral_trainer.train()
-	return episode_rewards, episode_durations
-
-def train_hierarchical_distral(envs=[GridworldEnv(5), GridworldEnv(4)]):
-	distral_trainer = HeirarchicalDistralTrainer(envs)
-	episode_rewards, episode_durations = distral_trainer.train()
-	return episode_rewards, episode_durations

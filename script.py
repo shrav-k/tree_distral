@@ -15,84 +15,84 @@ def empty_room(size = 6, wrapper = None,n = 4):
         envs = [gym.make(env_type) for _ in range(n)]
     else:
         envs = [wrapper(gym.make(env_type)) for _ in range(n)]
-    policy.train_distral(envs)
+    return envs
 
 def two_room(wrapper = None,n = 4):
     if wrapper is None:
         envs = [gym.make("MiniGrid-MultiRoom-N2-S4-v0") for _ in range(n)]
     else:
         envs = [wrapper(gym.make("MiniGrid-MultiRoom-N2-S4-v0")) for _ in range(n)]
-    policy.train_distral(envs)
+    return envs
 
 def four_rooms(wrapper = None,n = 4):
     if wrapper is None:
         envs = [gym.make("MiniGrid-FourRooms-v0") for _ in range(n)]
     else:
         envs = [wrapper(gym.make("MiniGrid-FourRooms-v0")) for _ in range(n)]
-    policy.train_distral(envs)
+    return envs
 
 def unlock(wrapper = None,n = 4):
     if wrapper is None:
         envs = [gym.make("MiniGrid-Unlock-v0") for _ in range(n)]
     else:
         envs = [wrapper(gym.make("MiniGrid-Unlock-v0")) for _ in range(n)]
-    policy.train_distral(envs)
+    return envs
 
 def unlock_pick_up(wrapper = None,n = 4):
     if wrapper is None:
         envs = [gym.make("MiniGrid-UnlockPickup-v0") for _ in range(n)]
     else:
         envs = [wrapper(gym.make("MiniGrid-UnlockPickup-v0")) for _ in range(n)]
-    policy.train_distral(envs)
+    return envs
 
 def simple_crossing_env(wrapper = None,n = 4):
     if wrapper is None:
         envs = [gym.make("MiniGrid-SimpleCrossingS9N3-v0") for _ in range(n)]
     else:
         envs = [wrapper(gym.make("MiniGrid-SimpleCrossingS9N3-v0")) for _ in range(n)]
-    policy.train_distral(envs)
+    return envs
 
 def lava_crossing_env(wrapper = None,n = 4):
     if wrapper is None:
         envs = [gym.make("MiniGrid-LavaCrossingS9N2-v0") for _ in range(n)]
     else:
         envs = [wrapper(gym.make("MiniGrid-LavaCrossingS9N2-v0")) for _ in range(n)]
-    policy.train_distral(envs)
+    return envs
 
 def lava_gap(wrapper = None,n = 4):
     if wrapper is None:
         envs = [gym.make("MiniGrid-LavaGapS7-v0") for _ in range(n)]
     else:
         envs = [wrapper(gym.make("MiniGrid-LavaGapS7-v0")) for _ in range(n)]
-    policy.train_distral(envs)
+    return envs
 
-empty_room()
+params = {
+"tree" : False,
+"envs" : empty_room(),
+"alpha" : 0.5,
+"beta" : 0.005,
+"gamma" : 0.8,
+"learning_rate" : 0.001,
+"layer_size" : 64,
+"depth" : 2,
+"num_distilled" : 2,
+"set_parent_interval" : 10,
+"c" : 0.5
+}
 
 
-'''
-class ConvPolicy(Model):
+def run_experiment(params):
+    if(params['tree']):
+        distral_trainer = policy.HeirarchicalDistralTrainer(params)
+        episode_rewards, episode_durations = distral_trainer.train()
+        return episode_rewards, episode_durations
+    else:
+        tree_trainer = policy.RegularDistralTrainer(params)
+        episode_rewards, episode_durations = tree_trainer.train()
+        return episode_rewards, episode_durations
 
-	def __init__(self, input_size, num_actions):
-		super(Policy, self).__init__()
-		self.input_size = input_size
-		self.num_actions = num_actions
 
-		self._build_graph()
+run_experiment(params)
 
-	def _build_graph(self):
-		self.fc_layers = []
-		for _ in range(self.depth):
-			self.fc_layers.append(Dense(self.layer_size, activation='relu'))
-		self.softmax_layer = Dense(self.num_actions, activation='sigmoid')
 
-	def call(self, inputs):
-		#Reshape input if only one dimension
-		#TODO: Change this
-		x = tf.reshape(inputs, [-1] + [self.input_size]) if (len(inputs.shape) == 1 or len(inputs.shape) == 3) else inputs
 
-		for i in range(self.depth):
-			x = self.fc_layers[i](x)
-		action_probs = self.softmax_layer(x)
-		return action_probs
-
-'''
