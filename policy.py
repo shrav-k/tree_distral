@@ -26,7 +26,7 @@ class Policy(Model):
 		self.fc_layers = []
 		for _ in range(self.depth):
 			self.fc_layers.append(Dense(self.layer_size, activation='relu'))
-		self.softmax_layer = Dense(self.num_actions, activation='sigmoid')
+		self.softmax_layer = Dense(self.num_actions, activation='softmax')
 
 	def call(self, inputs):
 		#Reshape input if only one dimension
@@ -95,14 +95,26 @@ class BaseDistralTrainer:
 			entropy_loss = 0 
 
 			for t in range(max_num_steps_per_episode):
-				policy_probs = policy(state)
-				distilled_probs = distilled(state)
+				policy_probs = tf.math.log(policy(state))
+				distilled_probs = tf.math.log(distilled(state))
 
 				action = tf.random.categorical(policy_probs, 1)
 				action = int(action) #Cast to integer
 
-				policy_log_prob = tf.math.log(policy_probs[0][action])
-				distilled_log_prob = tf.math.log(distilled_probs[0][action])
+				distilled_action = tf.random.categorical(distilled_probs, 1)
+				distilled_action = int(distilled_action)
+
+				try:
+					policy_log_prob = policy_probs[0][action]
+					distilled_log_prob = distilled_probs[0][distilled_action]
+				except:
+					print("Broken action: " + str(action))
+
+				#print("Policy Prob: " +  str(policy_probs[0][action]))
+				#print("Policy log prob: " + str(policy_log_prob))
+				#print("distill Prob: " + str(distilled_probs[0][action]))
+				#print("distill log prob: " + str(distilled_log_prob))
+
 
 				next_state, reward, done, _ = env.step(action)
 
@@ -111,7 +123,10 @@ class BaseDistralTrainer:
 
 				reward_loss += -discount * reward
 				distilled_loss += -discount * self.alpha / self.beta * distilled_log_prob
-				entropy_loss += discount / self.beta * policy_log_prob
+				entropy_loss += (discount / self.beta) * policy_log_prob
+
+				#distilled_loss += -discount * .001 * distilled_log_prob
+				#entropy_loss += (discount / 100) * policy_log_prob
 
 				state = next_state
 				discount *= self.gamma

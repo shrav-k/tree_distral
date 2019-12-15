@@ -68,11 +68,22 @@ def lava_gap(wrapper = None,n = 4):
         envs = [wrapper(gym.make("MiniGrid-LavaGapS7-v0")) for _ in range(n)]
     return envs
 
+cKL = 1
+cEnt = 1
+
+
+alpha = cKL / (cKL + cEnt)
+beta = 1 / (cKL + cEnt)
+
+print("alpha: " + str(alpha))
+print("beta: " + str(beta))
+
+
 params = {
-"tree" : True,
+"tree" : False,
 "envs" : empty_room(),
-"alpha" : 0.5,
-"beta" : 0.005,
+"alpha" : alpha,
+"beta" : beta,
 "gamma" : 0.8,
 "learning_rate" : 0.001,
 "layer_size" : 64,
@@ -82,7 +93,10 @@ params = {
 "c" : 0.5,
 }
 
-def run_experiment(params,num_episodes = 1000, max_episode = 100):
+
+
+
+def run_experiment(params,num_episodes = 10000, max_episode = 10):
     if(params['tree']):
         distral_trainer = policy.HeirarchicalDistralTrainer(params)
         episode_rewards, episode_durations = distral_trainer.train(num_episodes,max_episode)
