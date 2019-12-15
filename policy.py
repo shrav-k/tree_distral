@@ -101,12 +101,12 @@ class BaseDistralTrainer:
 				action = tf.random.categorical(policy_probs, 1)
 				action = int(action) #Cast to integer
 
-				distilled_action = tf.random.categorical(distilled_probs, 1)
-				distilled_action = int(distilled_action)
+				#distilled_action = tf.random.categorical(distilled_probs, 1)
+				#distilled_action = int(distilled_action)
 
 				try:
 					policy_log_prob = policy_probs[0][action]
-					distilled_log_prob = distilled_probs[0][distilled_action]
+					distilled_log_prob = distilled_probs[0][action]
 				except:
 					print("Broken action: " + str(action))
 
@@ -122,11 +122,11 @@ class BaseDistralTrainer:
 					next_state = next_state['image']
 
 				reward_loss += -discount * reward
-				distilled_loss += -discount * self.alpha / self.beta * distilled_log_prob
-				entropy_loss += (discount / self.beta) * policy_log_prob
+				#distilled_loss += -discount * self.alpha / self.beta * distilled_log_prob
+				#entropy_loss += (discount / self.beta) * policy_log_prob
 
-				#distilled_loss += -discount * .001 * distilled_log_prob
-				#entropy_loss += (discount / 100) * policy_log_prob
+				distilled_loss += -discount * .01 * distilled_log_prob
+				entropy_loss += discount  * .01 * policy_log_prob
 
 				state = next_state
 				discount *= self.gamma

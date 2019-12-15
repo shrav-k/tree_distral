@@ -96,7 +96,7 @@ params = {
 
 
 
-def run_experiment(params,num_episodes = 10000, max_episode = 10):
+def run_experiment(params,num_episodes = 10000, max_episode = 100):
     if(params['tree']):
         distral_trainer = policy.HeirarchicalDistralTrainer(params)
         episode_rewards, episode_durations = distral_trainer.train(num_episodes,max_episode)
