@@ -44,6 +44,10 @@ def trainD(file_name="Distral_1col", list_of_envs=[GridworldEnv(5),
     episode_durations = [[] for _ in range(num_envs)]
     episode_rewards = [[] for _ in range(num_envs)]
 
+    #The current total reward for the environment
+    #current_env_reward = [0 for ]
+
+
     steps_done = np.zeros(num_envs)
     episodes_done = np.zeros(num_envs)
     current_time = np.zeros(num_envs)
@@ -76,7 +80,7 @@ def trainD(file_name="Distral_1col", list_of_envs=[GridworldEnv(5),
             steps_done[i_env] += 1
             current_time[i_env] += 1
             next_state_tmp, reward, done, _ = env.step(action)
-            reward = torch.tensor([reward])
+            reward = torch.tensor([reward]).type(torch.FloatTensor)
 
             # Observe new state
             # If from the gym mini grid environment
@@ -103,14 +107,20 @@ def trainD(file_name="Distral_1col", list_of_envs=[GridworldEnv(5),
             # Check if agent reached target
             if done or current_time[i_env] >= max_num_steps_per_episode:
                 print("ENV:", i_env, "iter:", episodes_done[i_env],
-                    "\treward:", env.episode_total_reward,
+                    #"\treward:", env.episode_total_reward,
                     "\tit:", current_time[i_env], "\texp_factor:", eps_end +
                     (eps_start - eps_end) * math.exp(-1. * episodes_done[i_env] / eps_decay))
-                states[i_env] = torch.from_numpy( env.reset() ).type(torch.FloatTensor).view(-1,input_size)
+
+                reset_state = env.reset()
+                if isinstance(reset_state, dict):
+                    reset_state = reset_state['image']
+
+                states[i_env] = torch.from_numpy( reset_state ).type(torch.FloatTensor).view(-1,input_size)
                 episodes_done[i_env] += 1
                 episode_durations[i_env].append(current_time[i_env])
                 current_time[i_env] = 0
-                episode_rewards[i_env].append(env.episode_total_reward)
+                #TODO: Put back for original environment
+                #episode_rewards[i_env].append(env.episode_total_reward)
 
         optimize_policy(policy, policy_optimizer, memories, batch_size,num_envs, gamma)
 
@@ -133,3 +143,4 @@ def empty_room(size = 6, wrapper = None,n = 4):
 
 
 trainD(list_of_envs=empty_room(n=3))
+#trainD()
