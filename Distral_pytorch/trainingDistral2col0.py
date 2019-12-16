@@ -45,7 +45,7 @@ def trainD(file_name="Distral_1col", list_of_envs=[GridworldEnv(5),
     episode_rewards = [[] for _ in range(num_envs)]
 
     #The current total reward for the environment
-    #current_env_reward = [0 for ]
+    current_env_reward = [0 for _ in range(num_envs)]
 
 
     steps_done = np.zeros(num_envs)
@@ -80,6 +80,10 @@ def trainD(file_name="Distral_1col", list_of_envs=[GridworldEnv(5),
             steps_done[i_env] += 1
             current_time[i_env] += 1
             next_state_tmp, reward, done, _ = env.step(action)
+
+            #adjust current reward of environment
+            current_env_reward[i_env] += reward
+
             reward = torch.tensor([reward]).type(torch.FloatTensor)
 
             # Observe new state
@@ -107,7 +111,7 @@ def trainD(file_name="Distral_1col", list_of_envs=[GridworldEnv(5),
             # Check if agent reached target
             if done or current_time[i_env] >= max_num_steps_per_episode:
                 print("ENV:", i_env, "iter:", episodes_done[i_env],
-                    #"\treward:", env.episode_total_reward,
+                    "\treward:", "{0:0.3f}".format(current_env_reward[i_env]) ,
                     "\tit:", current_time[i_env], "\texp_factor:", eps_end +
                     (eps_start - eps_end) * math.exp(-1. * episodes_done[i_env] / eps_decay))
 
@@ -119,6 +123,8 @@ def trainD(file_name="Distral_1col", list_of_envs=[GridworldEnv(5),
                 episodes_done[i_env] += 1
                 episode_durations[i_env].append(current_time[i_env])
                 current_time[i_env] = 0
+                episode_rewards[i_env].append(current_env_reward[i_env])
+                current_env_reward[i_env] = 0
                 #TODO: Put back for original environment
                 #episode_rewards[i_env].append(env.episode_total_reward)
 
