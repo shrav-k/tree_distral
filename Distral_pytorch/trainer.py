@@ -79,6 +79,8 @@ memory_replay_size = 10000
 memory_policy_size = 1000
 
 
+#RUN 4 - 9 for the grid world runs
+
 
 def run_experiment():
     #envs = empty_room(n=4)
