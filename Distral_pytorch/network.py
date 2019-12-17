@@ -125,3 +125,21 @@ def optimize_model(policy, model, optimizer, memory, batch_size, alpha, beta, ga
     # for param in model.parameters():
     #     param.grad.data.clamp_(-1, 1)
     optimizer.step()
+
+def kl_divergence(policy, model, memory, batch_size, alpha, beta):
+    if len(memory) < batch_size:
+        return 0
+    transitions = memory.sample(batch_size)
+    kl_loss = 0
+    for t in transitions:
+        state = t[0]
+
+        Q = model(state)
+        pi0 = policy(state)
+        # print(pi0.data.numpy())
+        V = torch.log((torch.pow(pi0, alpha) * torch.exp(beta * Q)).sum(1) ) / beta
+
+        pi_i = torch.pow(pi0, alpha) * torch.exp(beta * (Q - V))
+        temp = sum([prob_i / prob_0 for prob_i, prob_0 in zip(pi_i, pi0)])
+        kl_loss += torch.sum(temp)
+    return kl_loss
