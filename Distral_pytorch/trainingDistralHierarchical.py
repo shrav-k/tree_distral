@@ -11,7 +11,7 @@ import gym
 import gym_minigrid
 
 
-def trainD(file_name="Distral_1col", list_of_envs=[GridworldEnv(5),
+def trainD(file_name="Hierarchical", list_of_envs=[GridworldEnv(5),
             GridworldEnv(4), GridworldEnv(6)], batch_size=128, gamma=0.999, alpha=0.5,
             beta=.5, eps_start=0.9, eps_end=0.05, eps_decay=5, num_episodes=200,
             max_num_steps_per_episode=500, learning_rate=0.001,
@@ -166,6 +166,6 @@ def empty_room(size = 6, wrapper = None,n = 4):
     return envs
 
 
-
+trainD(list_of_envs=[GridworldEnv(4),GridworldEnv(5), GridworldEnv(6), GridworldEnv(7), GridworldEnv(8), GridworldEnv(9)])
 #trainD(list_of_envs=empty_room(n=3))
-trainD()
+#trainD()
