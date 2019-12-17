@@ -8,20 +8,18 @@ sys.path.append('../')
 from envs.gridworld_env import GridworldEnv
 import gym
 import gym_minigrid
-import time
+import time as timeLib
 
 
-def trainD(file_name="Distral_2col", list_of_envs=[GridworldEnv(5),
-            GridworldEnv(4), GridworldEnv(6)], batch_size=128, gamma=0.999, alpha=0.5,
-            beta=.5, eps_start=0.9, eps_end=0.05, eps_decay=5, num_episodes=200,
+def trainD(file_name="multi_grid-world/", list_of_envs=[GridworldEnv(4), GridworldEnv(5),GridworldEnv(6),GridworldEnv(7),GridworldEnv(8),GridworldEnv(9)], batch_size=128, gamma=0.999, alpha=0.5,
+            beta=.5, eps_start=0.9, eps_end=0.05, eps_decay=5, num_episodes=300,
             max_num_steps_per_episode=500, learning_rate=0.001,
             memory_replay_size=10000, memory_policy_size=1000):
     """
-    Soft Q-learning training routine. Retuns rewards and durations logs.
+    Soft Q-learning training routine. Retuns rewards and durations logs
     Plot environment screen
     """
     #Save the params for later filenaming
-    params = locals()
 
     num_actions = list_of_envs[0].action_space.n
     try:
@@ -118,9 +116,6 @@ def trainD(file_name="Distral_2col", list_of_envs=[GridworldEnv(5),
                     "\tit:", current_time[i_env])
 
 
-                #, "\texp_factor:", eps_end +
-                #    (eps_start - eps_end) * math.exp(-1. * episodes_done[i_env] / eps_decay)
-
                 reset_state = env.reset()
                 if isinstance(reset_state, dict):
                     reset_state = reset_state['image']
@@ -138,7 +133,7 @@ def trainD(file_name="Distral_2col", list_of_envs=[GridworldEnv(5),
 
     #Get hyperparameters to save file
 
-    np.save(file_name + '-distral-2col-rewards' + str(locals()) + '-' + str(time.time()), episode_rewards)
-    np.save(file_name + '-distral-2col-durations' + str(locals()) + '-' + str(time.time()), episode_durations)
+    np.save(file_name + '-distral-2col-rewards-'+'a' + str(alpha) + '-b' + str(beta) + '-g' + str(gamma) + '-lr' + str(learning_rate) + '-' + str(timeLib.time()), episode_rewards)
+    np.save(file_name + '-distral-2col-durations-' + str(alpha) + '-b' + str(beta) + '-g' + str(gamma) + '-lr' + str(learning_rate) + '-' + str(timeLib.time()), episode_durations)
 
     return models, policy, episode_rewards, episode_durations

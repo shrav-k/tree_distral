@@ -68,8 +68,8 @@ cEnt = 1
 
 batch_size = 128
 gamma = 0.999
-alpha = 0.5
-beta = .5
+#alpha = 0.5
+#beta = 0.5
 alpha = cKL / (cKL + cEnt)
 beta = 1 / (cKL + cEnt)
 num_episodes = 200,
@@ -84,7 +84,14 @@ memory_policy_size = 1000
 
 def run_experiment():
     #envs = empty_room(n=4)
-    #trainD(list_of_envs=envs)
-    trainD()
+    lrs = [.001,.005,.01]
+    gammas = [0.999,0.99,0.95]
+    cs = [(1,1),(1,2),(2,1)]
+    for lr in lrs:
+        for g in gammas:
+            for c in cs:
+                alpha = c[0] / (c[0] + c[1])
+                beta = 1 / (c[0] + c[1])
+                trainD(alpha = alpha,beta = beta,learning_rate = lr,gamma = g,num_episodes=2)
 
 run_experiment()
