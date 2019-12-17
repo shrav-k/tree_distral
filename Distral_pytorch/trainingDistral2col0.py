@@ -1,17 +1,17 @@
 import torch.optim as optim
 import torch
-import math
 import numpy as np
-from memory_replay import ReplayMemory, Transition
+from memory_replay import ReplayMemory
 from network import DQN, select_action, optimize_model, optimize_policy, PolicyNetwork
 import sys
 sys.path.append('../')
 from envs.gridworld_env import GridworldEnv
 import gym
 import gym_minigrid
+import time
 
 
-def trainD(file_name="Distral_1col", list_of_envs=[GridworldEnv(5),
+def trainD(file_name="Distral_2col", list_of_envs=[GridworldEnv(5),
             GridworldEnv(4), GridworldEnv(6)], batch_size=128, gamma=0.999, alpha=0.5,
             beta=.5, eps_start=0.9, eps_end=0.05, eps_decay=5, num_episodes=200,
             max_num_steps_per_episode=500, learning_rate=0.001,
@@ -20,6 +20,9 @@ def trainD(file_name="Distral_1col", list_of_envs=[GridworldEnv(5),
     Soft Q-learning training routine. Retuns rewards and durations logs.
     Plot environment screen
     """
+    #Save the params for later filenaming
+    params = locals()
+
     num_actions = list_of_envs[0].action_space.n
     try:
         input_size = list_of_envs[0].observation_space.shape[0]
@@ -112,8 +115,11 @@ def trainD(file_name="Distral_1col", list_of_envs=[GridworldEnv(5),
             if done or current_time[i_env] >= max_num_steps_per_episode:
                 print("ENV:", i_env, "iter:", episodes_done[i_env],
                     "\treward:", "{0:0.3f}".format(current_env_reward[i_env]) ,
-                    "\tit:", current_time[i_env], "\texp_factor:", eps_end +
-                    (eps_start - eps_end) * math.exp(-1. * episodes_done[i_env] / eps_decay))
+                    "\tit:", current_time[i_env])
+
+
+                #, "\texp_factor:", eps_end +
+                #    (eps_start - eps_end) * math.exp(-1. * episodes_done[i_env] / eps_decay)
 
                 reset_state = env.reset()
                 if isinstance(reset_state, dict):
@@ -130,23 +136,9 @@ def trainD(file_name="Distral_1col", list_of_envs=[GridworldEnv(5),
 
         optimize_policy(policy, policy_optimizer, memories, batch_size,num_envs, gamma)
 
-    np.save(file_name + '-distral-2col-rewards', episode_rewards)
-    np.save(file_name + '-distral-2col-durations', episode_durations)
+    #Get hyperparameters to save file
+
+    np.save(file_name + '-distral-2col-rewards' + str(locals()) + '-' + str(time.time()), episode_rewards)
+    np.save(file_name + '-distral-2col-durations' + str(locals()) + '-' + str(time.time()), episode_durations)
 
     return models, policy, episode_rewards, episode_durations
-
-def empty_room(size = 6, wrapper = None,n = 4):
-    if size != 5 and size != 6:
-        print("Invalid Size")
-        return
-    env_type = "MiniGrid-Empty-Random-" + str(size)+ "x" + str(size) +"-v0"
-    if wrapper is None:
-        envs = [gym.make(env_type) for _ in range(n)]
-    else:
-        envs = [wrapper(gym.make(env_type)) for _ in range(n)]
-    return envs
-
-
-
-trainD(list_of_envs=empty_room(n=3))
-#trainD()
