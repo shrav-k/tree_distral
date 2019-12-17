@@ -142,4 +142,4 @@ def kl_divergence(policy, model, memory, batch_size, alpha, beta):
         pi_i = torch.pow(pi0, alpha) * torch.exp(beta * (Q - V))
         temp = sum([prob_i / prob_0 for prob_i, prob_0 in zip(pi_i, pi0)])
         kl_loss += torch.sum(temp)
-    return kl_loss
+    return kl_loss / batch_size

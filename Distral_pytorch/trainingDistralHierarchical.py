@@ -144,11 +144,13 @@ def trainD(file_name="Distral_1col", list_of_envs=[GridworldEnv(5),
                         exploration_loss = c * np.sqrt(np.sum(policy_episodes[i_env]) / policy_episodes[i_env][i])
                         loss = kl_loss - exploration_loss
                         if loss < best_loss:
+                            print(loss, i)
                             best_loss = loss
                             best_policy = i
-                    policy_map[i_env] = i
-                    policy_episodes[i_env][i] += episode_interval
+                    policy_map[i_env] = best_policy
+                    policy_episodes[i_env][best_policy] += episode_interval
                     print(policy_map)
+                    print(policy_episodes)
 
         optimize_policy(policy, policy_optimizer, memories, batch_size,num_envs, gamma)
 
