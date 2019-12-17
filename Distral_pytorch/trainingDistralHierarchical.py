@@ -28,7 +28,6 @@ def trainD(file_name="Distral_1col", list_of_envs=[GridworldEnv(5),
         input_size = np.prod(list_of_envs[0].observation_space['image'].shape)
 
     num_envs = len(list_of_envs)
-    # policy = PolicyNetwork(input_size, num_actions)
     policies = [PolicyNetwork(input_size, num_actions) for _ in range(num_policies)]
     models = [DQN(input_size,num_actions) for _ in range(0, num_envs)]   ### Add torch.nn.ModuleList (?)
     memories = [ReplayMemory(memory_replay_size, memory_policy_size) for _ in range(0, num_envs)]
@@ -44,7 +43,6 @@ def trainD(file_name="Distral_1col", list_of_envs=[GridworldEnv(5),
             model.cuda()
 
     optimizers = [optim.Adam(model.parameters(), lr=learning_rate) for model in models]
-    # policy_optimizer = optim.Adam(policy.parameters(), lr=learning_rate)
     policy_optimizers = [optim.Adam(policy.parameters(), lr=learning_rate) for policy in policies]
 
     episode_durations = [[] for _ in range(num_envs)]
@@ -115,7 +113,6 @@ def trainD(file_name="Distral_1col", list_of_envs=[GridworldEnv(5),
             # Update state
             states[i_env] = next_state
 
-            #TODO: make sure this is the correct way to handle max_num_steps_per_episode
             # Check if agent reached target
             if done or current_time[i_env] >= max_num_steps_per_episode:
                 print("ENV:", i_env, "iter:", episodes_done[i_env],
@@ -133,8 +130,6 @@ def trainD(file_name="Distral_1col", list_of_envs=[GridworldEnv(5),
                 current_time[i_env] = 0
                 episode_rewards[i_env].append(current_env_reward[i_env])
                 current_env_reward[i_env] = 0
-                #TODO: Put back for original environment
-                #episode_rewards[i_env].append(env.episode_total_reward)
 
                 if episodes_done[i_env] % episode_interval == 0:
                     best_loss = float("inf")
@@ -172,5 +167,5 @@ def empty_room(size = 6, wrapper = None,n = 4):
 
 
 
-trainD(list_of_envs=empty_room(n=3))
-#trainD()
+#trainD(list_of_envs=empty_room(n=3))
+trainD()
