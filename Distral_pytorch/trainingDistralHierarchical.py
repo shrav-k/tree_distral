@@ -16,7 +16,7 @@ def trainD(file_name="Distral_1col", list_of_envs=[GridworldEnv(5),
             beta=.5, eps_start=0.9, eps_end=0.05, eps_decay=5, num_episodes=200,
             max_num_steps_per_episode=500, learning_rate=0.001,
             memory_replay_size=10000, memory_policy_size=1000,
-            num_policies=2, c=1, episode_interval=10):
+            num_policies=2, c=0.5, episode_interval=10):
     """
     Soft Q-learning training routine. Retuns rewards and durations logs.
     Plot environment screen
