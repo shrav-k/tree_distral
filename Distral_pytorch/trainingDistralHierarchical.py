@@ -9,10 +9,11 @@ sys.path.append('../')
 from envs.gridworld_env import GridworldEnv
 import gym
 import gym_minigrid
+import time as timeLib
 
 
-def trainD(file_name="Hierarchical", list_of_envs=[GridworldEnv(5),
-            GridworldEnv(4), GridworldEnv(6)], batch_size=128, gamma=0.999, alpha=0.5,
+def trainD(file_name="Hierarchical", list_of_envs=[GridworldEnv(4),GridworldEnv(5), GridworldEnv(6), GridworldEnv(7), GridworldEnv(8), GridworldEnv(9)],
+            batch_size=128, gamma=0.999, alpha=0.5,
             beta=.5, eps_start=0.9, eps_end=0.05, eps_decay=5, num_episodes=200,
             max_num_steps_per_episode=500, learning_rate=0.001,
             memory_replay_size=10000, memory_policy_size=1000,
@@ -149,23 +150,7 @@ def trainD(file_name="Hierarchical", list_of_envs=[GridworldEnv(5),
 
         optimize_policy(policy, policy_optimizer, memories, batch_size,num_envs, gamma)
 
-    np.save(file_name + '-distral-2col-rewards', episode_rewards)
-    np.save(file_name + '-distral-2col-durations', episode_durations)
+    np.save(file_name + '-distral-2col-rewards-'+'a' + str(alpha) + '-b' + str(beta) + '-g' + str(gamma) + '-lr' + str(learning_rate) + '-' + str(timeLib.time()), episode_rewards)
+    np.save(file_name + '-distral-2col-durations-' + str(alpha) + '-b' + str(beta) + '-g' + str(gamma) + '-lr' + str(learning_rate) + '-' + str(timeLib.time()), episode_durations)
 
     return models, policy, episode_rewards, episode_durations
-
-def empty_room(size = 6, wrapper = None,n = 4):
-    if size != 5 and size != 6:
-        print("Invalid Size")
-        return
-    env_type = "MiniGrid-Empty-Random-" + str(size)+ "x" + str(size) +"-v0"
-    if wrapper is None:
-        envs = [gym.make(env_type) for _ in range(n)]
-    else:
-        envs = [wrapper(gym.make(env_type)) for _ in range(n)]
-    return envs
-
-
-trainD(list_of_envs=[GridworldEnv(4),GridworldEnv(5), GridworldEnv(6), GridworldEnv(7), GridworldEnv(8), GridworldEnv(9)])
-#trainD(list_of_envs=empty_room(n=3))
-#trainD()
