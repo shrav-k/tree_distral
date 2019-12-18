@@ -102,7 +102,7 @@ def run_empty_room():
             for c in cs:
                 alpha = c[0] / (c[0] + c[1])
                 beta = 1 / (c[0] + c[1])
-                trainD(file_name = 'empty_room_data/',list_of_envs = empty_room(),alpha=alpha, beta=beta, learning_rate=lr, gamma=g,num_episodes = 2)
+                trainD(file_name = 'empty_room_data/',list_of_envs = empty_room(),alpha=alpha, beta=beta, learning_rate=lr, gamma=g)
 
 
 run_experiment()
