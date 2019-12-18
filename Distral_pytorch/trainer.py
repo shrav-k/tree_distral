@@ -92,6 +92,19 @@ def run_experiment():
             for c in cs:
                 alpha = c[0] / (c[0] + c[1])
                 beta = 1 / (c[0] + c[1])
-                trainD(alpha = alpha,beta = beta,learning_rate = lr,gamma = g,num_episodes=2)
+                trainD(alpha = alpha,beta = beta,learning_rate = lr,gamma = g)
 
-run_experiment()
+def run_empty_room():
+    lrs = [.001, .005, .01]
+    gammas = [0.999, 0.99, 0.95]
+    cs = [(1, 1), (1, 2), (2, 1)]
+    for lr in lrs:
+        for g in gammas:
+            for c in cs:
+                alpha = c[0] / (c[0] + c[1])
+                beta = 1 / (c[0] + c[1])
+                trainD(file_name = 'empty_room_data/',list_of_envs = empty_room(),alpha=alpha, beta=beta, learning_rate=lr, gamma=g,num_episodes = 2)
+
+
+
+run_empty_room()
