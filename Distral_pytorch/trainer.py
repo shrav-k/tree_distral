@@ -83,7 +83,6 @@ memory_policy_size = 1000
 
 
 def run_experiment():
-    #envs = empty_room(n=4)
     lrs = [.001,.005,.01]
     gammas = [0.999,0.99,0.95]
     cs = [(1,1),(1,2),(2,1)]
@@ -106,5 +105,5 @@ def run_empty_room():
                 trainD(file_name = 'empty_room_data/',list_of_envs = empty_room(),alpha=alpha, beta=beta, learning_rate=lr, gamma=g,num_episodes = 2)
 
 
-
+run_experiment()
 run_empty_room()
